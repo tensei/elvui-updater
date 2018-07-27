@@ -10,13 +10,11 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func main() {
 	settings := getSettings()
 	tukuiAddons := getTukuiAddonList()
-	time.Sleep(time.Second)
 	clientTukuiAddons := getUIAddon("elvui", "tukui")
 	addonsFolder := filepath.Join(settings.WowDirectory, "interface", "addons")
 	addons, err := readDirIndex(addonsFolder)

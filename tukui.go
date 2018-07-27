@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"time"
 )
 
 var client = http.Client{}
@@ -93,7 +92,6 @@ func getUIAddon(uis ...string) []ClientApiAddon {
 			log.Fatal(err)
 		}
 		addons = append(addons, addon)
-		time.Sleep(time.Second)
 	}
 	return addons
 
