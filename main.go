@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -12,10 +13,25 @@ import (
 	"strings"
 )
 
+var installAddon string
+
+func init() {
+	flag.StringVar(&installAddon, "install", "", "elvui only for now")
+	flag.Parse()
+}
+
 func main() {
 	settings := getSettings()
+	clientTukuiAddons := getExtraUIAddons("elvui", "tukui")
+
+	log.Println(os.Args)
+	if installAddon == "elvui" {
+		install(settings, clientTukuiAddons)
+		return
+	}
+
 	tukuiAddons := getTukuiAddonList()
-	clientTukuiAddons := getUIAddon("elvui", "tukui")
+
 	addonsFolder := filepath.Join(settings.WowDirectory, "interface", "addons")
 	addons, err := readDirIndex(addonsFolder)
 	if err != nil {
@@ -34,12 +50,7 @@ func main() {
 			if !strings.HasSuffix(file, ".toc") {
 				continue
 			}
-			data, err := ioutil.ReadFile(filepath.Join(addonFolder, file))
-			if err != nil {
-				log.Println(err)
-				break
-			}
-			toc := parseToc(string(data))
+			toc := parseToc(filepath.Join(addonFolder, file))
 
 			version := ""
 			downloadUrl := ""
@@ -75,6 +86,7 @@ func main() {
 					log.Println("error updating", addon, err.Error())
 					break
 				}
+				updateToc(toc.path, toc.XTukuiProjectID)
 				log.Println("finished updating", addon)
 				break
 			}
@@ -156,4 +168,18 @@ func updateAddon(link, name, addonsPath string) error {
 	}
 	os.Remove(zipname)
 	return nil
+}
+
+func install(settings *Settings, addons []ClientApiAddon) {
+	addonsFolder := filepath.Join(settings.WowDirectory, "interface", "addons")
+	args := os.Args
+	if args[2] == "elvui" {
+		err := updateAddon(addons[0].URL, "elvui", addonsFolder)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		tocPath := filepath.Join(addonsFolder, "ElvUi", "ElvUi.toc")
+		updateToc(tocPath, addons[0].ID)
+	}
 }

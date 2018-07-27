@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"strconv"
 	"strings"
@@ -9,19 +12,29 @@ import (
 type Toc struct {
 	Version              float64
 	XTukuiProjectID      int
-	XTukuiProjectFolders []string
+	XTukuiProjectFolders string
+	lines                []string
+	path                 string
 }
 
-func parseToc(data string) *Toc {
+func parseToc(path string) *Toc {
 	toc := Toc{}
-	lines := strings.Split(data, "\n")
-
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.Println(err)
+		return &toc
+	}
+	toc.path = path
+	lines := strings.Split(string(data), "\n")
 	for _, line := range lines {
-		parts := strings.Split(strings.TrimSpace(line), " ")
-		if parts[0] != "##" || len(parts) < 3 {
+		line = strings.TrimSpace(line)
+		toc.lines = append(toc.lines, line)
+		parts := strings.SplitN(line, " ", 3)
+		if parts[0] != "##" {
 			continue
 		}
-		switch parts[1][:len(parts[1])-1] {
+		tag := parts[1][:len(parts[1])-1]
+		switch tag {
 		case "Version":
 			version, err := strconv.ParseFloat(parts[2], 64)
 			if err != nil {
@@ -37,9 +50,43 @@ func parseToc(data string) *Toc {
 			}
 			toc.XTukuiProjectID = id
 		case "X-Tukui-ProjectFolders":
-			toc.XTukuiProjectFolders = strings.Split(parts[2], ",")
+			toc.XTukuiProjectFolders = strings.TrimSpace(parts[2])
 		default:
 		}
 	}
 	return &toc
+}
+
+func updateToc(path string, id int) error {
+	newtoc := parseToc(path)
+	endstring := bytes.NewBuffer([]byte{})
+	hasId := false
+	hasFolders := false
+	lastHash := 0
+	for i, line := range newtoc.lines {
+		if strings.Contains(line, "## X-Tukui-ProjectID: ") {
+			hasId = true
+			break
+		}
+		if !strings.Contains(line, "##") {
+			lastHash = i
+			break
+		}
+	}
+	if hasId && hasFolders {
+		return nil
+	}
+
+	if !hasId {
+		newtoc.lines = append(newtoc.lines, "")
+		copy(newtoc.lines[lastHash+1:], newtoc.lines[lastHash:])
+		newtoc.lines[lastHash] = fmt.Sprintf("## X-Tukui-ProjectID: %d", id)
+		lastHash++
+	}
+
+	for _, line := range newtoc.lines {
+		endstring.WriteString(fmt.Sprintf("%s\r\n", strings.TrimSpace(line)))
+	}
+
+	return ioutil.WriteFile(path, endstring.Bytes(), 0755)
 }

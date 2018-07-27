@@ -68,7 +68,7 @@ func newRequest(method, url string) *http.Request {
 	return req
 }
 
-func getUIAddon(uis ...string) []ClientApiAddon {
+func getExtraUIAddons(uis ...string) []ClientApiAddon {
 	addons := []ClientApiAddon{}
 	for _, ui := range uis {
 		api := "https://www.tukui.org/client-api.php?ui=" + ui
