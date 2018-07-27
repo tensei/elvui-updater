@@ -16,7 +16,7 @@ import (
 var installAddon string
 
 func init() {
-	flag.StringVar(&installAddon, "install", "", "elvui only for now")
+	flag.StringVar(&installAddon, "install", "", "elvui and tukui only for now")
 	flag.Parse()
 }
 
@@ -24,7 +24,6 @@ func main() {
 	settings := getSettings()
 	clientTukuiAddons := getExtraUIAddons("elvui", "tukui")
 
-	log.Println(os.Args)
 	if installAddon == "elvui" {
 		install(settings, clientTukuiAddons)
 		return
@@ -172,14 +171,21 @@ func updateAddon(link, name, addonsPath string) error {
 
 func install(settings *Settings, addons []ClientApiAddon) {
 	addonsFolder := filepath.Join(settings.WowDirectory, "interface", "addons")
-	args := os.Args
-	if args[2] == "elvui" {
-		err := updateAddon(addons[0].URL, "elvui", addonsFolder)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		tocPath := filepath.Join(addonsFolder, "ElvUi", "ElvUi.toc")
-		updateToc(tocPath, addons[0].ID)
+	addon := -1
+	switch installAddon {
+	case "elvui":
+		addon = 0
+	case "tukui":
+		addon = 1
+	default:
+		return
 	}
+	a := addons[addon]
+	err := updateAddon(a.URL, a.Name, addonsFolder)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	tocPath := filepath.Join(addonsFolder, a.Name, a.Name + ".toc")
+	updateToc(tocPath, a.ID)
 }
