@@ -178,6 +178,7 @@ func install(settings *Settings, addons []ClientApiAddon) {
 	case "tukui":
 		addon = 1
 	default:
+		log.Println(installAddon, "no supported yet...")
 		return
 	}
 	a := addons[addon]
@@ -186,4 +187,9 @@ func install(settings *Settings, addons []ClientApiAddon) {
 		log.Println(err)
 		return
 	}
+	if _, ok:= inSlice(settings.Addons, a.Name); !ok {
+		settings.Addons = append(settings.Addons, a.Name)
+		settings.Save()
+	}
+	log.Println("done")
 }

@@ -25,3 +25,12 @@ func getSettings() *Settings {
 	}
 	return &settings
 }
+
+func (s *Settings) Save() {
+	b, err := json.MarshalIndent(s, "", "\t")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	ioutil.WriteFile("settings.json", b, 0755)
+}
