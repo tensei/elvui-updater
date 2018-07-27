@@ -1,6 +1,10 @@
 {
     "wow_directory" : "E:\\World of Warcraft",
     "addons": [
-        "ElvUI"
+        "ElvUI",
+        "ElvUI_LocPlus",
+        "ElvUI_SLE",
+        "AddOnSkins",
+        "ElvUI_Microbar"
     ]
 }

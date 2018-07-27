@@ -24,7 +24,7 @@ func main() {
 	settings := getSettings()
 	clientTukuiAddons := getExtraUIAddons("elvui", "tukui")
 
-	if installAddon == "elvui" {
+	if installAddon != "" {
 		install(settings, clientTukuiAddons)
 		return
 	}
@@ -186,6 +186,4 @@ func install(settings *Settings, addons []ClientApiAddon) {
 		log.Println(err)
 		return
 	}
-	tocPath := filepath.Join(addonsFolder, a.Name, a.Name + ".toc")
-	updateToc(tocPath, a.ID)
 }
