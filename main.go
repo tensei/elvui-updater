@@ -3,11 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -93,6 +95,11 @@ func main() {
 			break
 		}
 	}
+	if runtime.GOOS == "windows" {
+		fmt.Println("Press the Enter Key to terminate the console screen!")
+		var input string
+		fmt.Scanln(&input)
+	}
 
 }
 
@@ -138,19 +145,28 @@ func getClientAddonbyID(addons []ClientApiAddon, id int) *ClientApiAddon {
 
 func doanloadAddon(link, name string) error {
 	log.Println("downloading...", name)
-	req := newRequest("GET", link)
-	res, err := client.Do(req)
+	// Create the file
+	out, err := os.Create(name)
 	if err != nil {
 		return err
 	}
-	if res.Body != nil {
-		defer res.Body.Close()
-	}
-	data, err := ioutil.ReadAll(res.Body)
+	defer out.Close()
+
+	// Get the data
+	resp, err := client.Get(link)
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(name, data, 0755)
+	defer resp.Body.Close()
+
+	// Check server response
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad status: %s", resp.Status)
+	}
+
+	// Write the body to file
+	_, err = io.Copy(out, resp.Body)
+	return err
 }
 
 var addonZipFileName = regexp.MustCompile("[^a-zA-Z0-9]")
