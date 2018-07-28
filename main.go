@@ -88,7 +88,7 @@ func main() {
 					break
 				}
 				updateToc(toc.path, toc.XTukuiProjectID)
-				log.Println("finished updating", addon)
+				log.Printf("finished updating %s from %.2f to %.2f", addon, toc.Version, addonVersion)
 				break
 			}
 			log.Println(addon, "is up-to-date!")
