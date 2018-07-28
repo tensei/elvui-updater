@@ -95,6 +95,7 @@ func main() {
 			break
 		}
 	}
+
 	if runtime.GOOS == "windows" {
 		fmt.Println("Press the Enter Key to terminate the console screen!")
 		var input string
@@ -143,7 +144,7 @@ func getClientAddonbyID(addons []ClientApiAddon, id int) *ClientApiAddon {
 	return nil
 }
 
-func doanloadAddon(link, name string) error {
+func downloadAddon(link, name string) error {
 	log.Println("downloading...", name)
 	// Create the file
 	out, err := os.Create(name)
@@ -173,7 +174,7 @@ var addonZipFileName = regexp.MustCompile("[^a-zA-Z0-9]")
 
 func updateAddon(link, name, addonsPath string) error {
 	zipname := fmt.Sprintf("%s.zip", addonZipFileName.ReplaceAllString(name, ""))
-	err := doanloadAddon(link, zipname)
+	err := downloadAddon(link, zipname)
 	if err != nil {
 		return err
 	}

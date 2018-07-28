@@ -61,7 +61,6 @@ func updateToc(path string, id int) error {
 	newtoc := parseToc(path)
 	endstring := bytes.NewBuffer([]byte{})
 	hasId := false
-	hasFolders := false
 	lastHash := 0
 	for i, line := range newtoc.lines {
 		if strings.Contains(line, "## X-Tukui-ProjectID: ") {
@@ -73,16 +72,13 @@ func updateToc(path string, id int) error {
 			break
 		}
 	}
-	if hasId && hasFolders {
+	if hasId {
 		return nil
 	}
 
-	if !hasId {
-		newtoc.lines = append(newtoc.lines, "")
-		copy(newtoc.lines[lastHash+1:], newtoc.lines[lastHash:])
-		newtoc.lines[lastHash] = fmt.Sprintf("## X-Tukui-ProjectID: %d", id)
-		lastHash++
-	}
+	newtoc.lines = append(newtoc.lines, "")
+	copy(newtoc.lines[lastHash+1:], newtoc.lines[lastHash:])
+	newtoc.lines[lastHash] = fmt.Sprintf("## X-Tukui-ProjectID: %d", id)
 
 	for _, line := range newtoc.lines {
 		endstring.WriteString(fmt.Sprintf("%s\r\n", strings.TrimSpace(line)))
