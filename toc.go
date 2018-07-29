@@ -12,6 +12,7 @@ import (
 type Toc struct {
 	Version              float64
 	XTukuiProjectID      int
+	HasProjectID         bool
 	XTukuiProjectFolders string
 	lines                []string
 	path                 string
@@ -38,7 +39,6 @@ func parseToc(path string) *Toc {
 		case "Version":
 			version, err := strconv.ParseFloat(parts[2], 64)
 			if err != nil {
-				log.Println(err)
 				continue
 			}
 			toc.Version = version
@@ -49,6 +49,7 @@ func parseToc(path string) *Toc {
 				continue
 			}
 			toc.XTukuiProjectID = id
+			toc.HasProjectID = true
 		case "X-Tukui-ProjectFolders":
 			toc.XTukuiProjectFolders = strings.TrimSpace(parts[2])
 		default:

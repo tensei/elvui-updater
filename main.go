@@ -34,66 +34,48 @@ func main() {
 	tukuiAddons := getTukuiAddonList()
 
 	addonsFolder := filepath.Join(settings.WowDirectory, "interface", "addons")
-	addons, err := readDirIndex(addonsFolder)
-	if err != nil {
-		log.Fatal(err)
-	}
+	addons := getLocalTukuiAddons(addonsFolder)
 	for _, addon := range addons {
-		if _, ok := inSlice(settings.Addons, addon); !ok {
+
+		version := ""
+		downloadUrl := ""
+
+		if addon.Toc.XTukuiProjectID < 0 {
+			clienttukuiaddon := getClientAddonbyID(clientTukuiAddons, addon.Toc.XTukuiProjectID)
+			if clienttukuiaddon != nil {
+				version = clienttukuiaddon.Version
+				downloadUrl = clienttukuiaddon.URL
+			}
+		} else {
+			tukuiaddon := getAddonbyID(tukuiAddons, fmt.Sprintf("%d", addon.Toc.XTukuiProjectID))
+			if tukuiaddon != nil {
+				version = tukuiaddon.Version
+				downloadUrl = tukuiaddon.URL
+			}
+		}
+
+		if version == "" || downloadUrl == "" {
+			log.Println(addon.Name, "couldn't find the addon in the api")
 			continue
 		}
-		addonFolder := filepath.Join(addonsFolder, addon)
-		files, err := readDirIndex(addonFolder)
+
+		addonVersion, err := strconv.ParseFloat(version, 64)
 		if err != nil {
+			log.Println(err)
 			continue
 		}
-		for _, file := range files {
-			if !strings.HasSuffix(file, ".toc") {
+		if addonVersion > addon.Toc.Version {
+			log.Println("updating", addon.Name)
+			err = addon.Update(downloadUrl, addonsFolder)
+			if err != nil {
+				log.Println("error updating", addon.Name, err.Error())
 				continue
 			}
-			toc := parseToc(filepath.Join(addonFolder, file))
-
-			version := ""
-			downloadUrl := ""
-
-			if toc.XTukuiProjectID < 0 {
-				clienttukuiaddon := getClientAddonbyID(clientTukuiAddons, toc.XTukuiProjectID)
-				if clienttukuiaddon != nil {
-					version = clienttukuiaddon.Version
-					downloadUrl = clienttukuiaddon.URL
-				}
-			} else {
-				tukuiaddon := getAddonbyID(tukuiAddons, fmt.Sprintf("%d", toc.XTukuiProjectID))
-				if tukuiaddon != nil {
-					version = tukuiaddon.Version
-					downloadUrl = tukuiaddon.URL
-				}
-			}
-
-			if version == "" || downloadUrl == "" {
-				log.Println(addon, "couldn't find the addon in the api")
-				break
-			}
-
-			addonVersion, err := strconv.ParseFloat(version, 64)
-			if err != nil {
-				log.Println(err)
-				break
-			}
-			if addonVersion > toc.Version {
-				log.Println("updating", addon)
-				err = updateAddon(downloadUrl, addon, addonsFolder)
-				if err != nil {
-					log.Println("error updating", addon, err.Error())
-					break
-				}
-				updateToc(toc.path, toc.XTukuiProjectID)
-				log.Printf("finished updating %s from %.2f to %.2f", addon, toc.Version, addonVersion)
-				break
-			}
-			log.Println(addon, "is up-to-date!")
-			break
+			updateToc(addon.Toc.path, addon.Toc.XTukuiProjectID)
+			log.Printf("finished updating %s from %.2f to %.2f", addon.Name, addon.Toc.Version, addonVersion)
+			continue
 		}
+		log.Println(addon.Name, "is up-to-date!")
 	}
 
 	if runtime.GOOS == "windows" {
@@ -115,6 +97,16 @@ func readDirIndex(path string) ([]string, error) {
 	}
 	sort.Strings(names)
 	return names, nil
+}
+
+func getTocFilepath(addonFolder string) string {
+	files, _ := readDirIndex(addonFolder)
+	for _, file := range files {
+		if strings.HasSuffix(file, ".toc") {
+			return filepath.Join(addonFolder, file)
+		}
+	}
+	return ""
 }
 
 func inSlice(slice []string, item string) (int, bool) {
@@ -172,8 +164,8 @@ func downloadAddon(link, name string) error {
 
 var addonZipFileName = regexp.MustCompile("[^a-zA-Z0-9]")
 
-func updateAddon(link, name, addonsPath string) error {
-	zipname := fmt.Sprintf("%s.zip", addonZipFileName.ReplaceAllString(name, ""))
+func (addon *LocalTukuiAddon) Update(link, addonsPath string) error {
+	zipname := fmt.Sprintf("%s.zip", addonZipFileName.ReplaceAllString(addon.Name, ""))
 	err := downloadAddon(link, zipname)
 	if err != nil {
 		return err
@@ -199,11 +191,19 @@ func install(settings *Settings, addons []ClientApiAddon) {
 		return
 	}
 	a := addons[addon]
-	err := updateAddon(a.URL, a.Name, addonsFolder)
+	err := downloadAddon(a.URL, a.Name)
 	if err != nil {
 		log.Println(err)
 		return
 	}
+
+	zipname := fmt.Sprintf("%s.zip", addonZipFileName.ReplaceAllString(a.Name, ""))
+	_, err = Unzip(zipname, addonsFolder)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
 	if _, ok := inSlice(settings.Addons, a.Name); !ok {
 		settings.Addons = append(settings.Addons, a.Name)
 		settings.Save()

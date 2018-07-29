@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"path/filepath"
 )
 
 var client = http.Client{}
@@ -37,6 +38,12 @@ type DefaultAddonFields struct {
 	SmallDesc     string `json:"small_desc"`
 	ScreenshotURL string `json:"screenshot_url"`
 	Category      string `json:"category"`
+}
+
+type LocalTukuiAddon struct {
+	Name string
+	Path string
+	Toc  *Toc
 }
 
 func getTukuiAddonList() []TukuiAddon {
@@ -95,4 +102,30 @@ func getExtraUIAddons(uis ...string) []ClientApiAddon {
 	}
 	return addons
 
+}
+
+func getLocalTukuiAddons(addonsPath string) []LocalTukuiAddon {
+	localAddons := []LocalTukuiAddon{}
+	addons, err := readDirIndex(addonsPath)
+	if err != nil {
+		log.Println(err)
+		return localAddons
+	}
+	for _, addon := range addons {
+		addonPath := filepath.Join(addonsPath, addon)
+		tocfile := getTocFilepath(addonPath)
+		if tocfile == "" {
+			continue
+		}
+		toc := parseToc(tocfile)
+		if !toc.HasProjectID {
+			continue
+		}
+		localAddons = append(localAddons, LocalTukuiAddon{
+			Name: addon,
+			Path: addonPath,
+			Toc:  toc,
+		})
+	}
+	return localAddons
 }
