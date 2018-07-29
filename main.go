@@ -109,15 +109,6 @@ func getTocFilepath(addonFolder string) string {
 	return ""
 }
 
-func inSlice(slice []string, item string) (int, bool) {
-	for pos, i := range slice {
-		if strings.EqualFold(i, item) {
-			return pos, true
-		}
-	}
-	return 0, false
-}
-
 func getAddonbyID(addons []TukuiAddon, id string) *TukuiAddon {
 	for _, a := range addons {
 		if a.ID == id {
