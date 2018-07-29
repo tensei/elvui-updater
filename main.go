@@ -204,10 +204,5 @@ func install(settings *Settings, addons []ClientApiAddon) {
 		log.Println(err)
 		return
 	}
-
-	if _, ok := inSlice(settings.Addons, a.Name); !ok {
-		settings.Addons = append(settings.Addons, a.Name)
-		settings.Save()
-	}
 	log.Println("done")
 }

@@ -7,8 +7,7 @@ import (
 )
 
 type Settings struct {
-	WowDirectory string   `json:"wow_directory"`
-	Addons       []string `json:"addons"`
+	WowDirectory string `json:"wow_directory"`
 }
 
 func getSettings() *Settings {
