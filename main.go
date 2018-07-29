@@ -191,13 +191,14 @@ func install(settings *Settings, addons []ClientApiAddon) {
 		return
 	}
 	a := addons[addon]
-	err := downloadAddon(a.URL, a.Name)
+	zipname := fmt.Sprintf("%s.zip", addonZipFileName.ReplaceAllString(a.Name, ""))
+	defer os.Remove(zipname)
+	err := downloadAddon(a.URL, zipname)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	zipname := fmt.Sprintf("%s.zip", addonZipFileName.ReplaceAllString(a.Name, ""))
 	_, err = Unzip(zipname, addonsFolder)
 	if err != nil {
 		log.Println(err)

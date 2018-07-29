@@ -1,3 +1,6 @@
 {
-    "wow_directory" : "E:\\World of Warcraft"
+	"wow_directory": "E:\\World of Warcraft",
+	"addons": [
+		"ElvUI"
+	]
 }
