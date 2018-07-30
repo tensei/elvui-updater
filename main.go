@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 var installAddon string
@@ -32,58 +33,22 @@ func main() {
 	}
 
 	tukuiAddons := getTukuiAddonList()
-
 	addonsFolder := filepath.Join(settings.WowDirectory, "interface", "addons")
 	addons := getLocalTukuiAddons(addonsFolder)
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(addons))
+
 	for _, addon := range addons {
-
-		version := ""
-		downloadUrl := ""
-
-		if addon.Toc.XTukuiProjectID < 0 {
-			clienttukuiaddon := getClientAddonbyID(clientTukuiAddons, addon.Toc.XTukuiProjectID)
-			if clienttukuiaddon != nil {
-				version = clienttukuiaddon.Version
-				downloadUrl = clienttukuiaddon.URL
-			}
-		} else {
-			tukuiaddon := getAddonbyID(tukuiAddons, fmt.Sprintf("%d", addon.Toc.XTukuiProjectID))
-			if tukuiaddon != nil {
-				version = tukuiaddon.Version
-				downloadUrl = tukuiaddon.URL
-			}
-		}
-
-		if version == "" || downloadUrl == "" {
-			log.Println(addon.Name, "couldn't find the addon in the api")
-			continue
-		}
-
-		addonVersion, err := strconv.ParseFloat(version, 64)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		if addonVersion > addon.Toc.Version {
-			log.Println("updating", addon.Name)
-			err = addon.Update(downloadUrl, addonsFolder)
-			if err != nil {
-				log.Println("error updating", addon.Name, err.Error())
-				continue
-			}
-			updateToc(addon.Toc.path, addon.Toc.XTukuiProjectID)
-			log.Printf("finished updating %s from %.2f to %.2f", addon.Name, addon.Toc.Version, addonVersion)
-			continue
-		}
-		log.Println(addon.Name, "is up-to-date!")
+		go checkForUpdate(addon, tukuiAddons, clientTukuiAddons, addonsFolder, &wg)
 	}
+	wg.Wait()
 
 	if runtime.GOOS == "windows" {
 		fmt.Println("Press the Enter Key to terminate the console screen!")
 		var input string
 		fmt.Scanln(&input)
 	}
-
 }
 
 func readDirIndex(path string) ([]string, error) {
@@ -128,7 +93,7 @@ func getClientAddonbyID(addons []ClientApiAddon, id int) *ClientApiAddon {
 }
 
 func downloadAddon(link, name string) error {
-	log.Println("downloading...", name)
+	log.Printf("%s downloading", name)
 	// Create the file
 	out, err := os.Create(name)
 	if err != nil {
@@ -161,6 +126,7 @@ func (addon *LocalTukuiAddon) Update(link, addonsPath string) error {
 	if err != nil {
 		return err
 	}
+	log.Printf("%s unzipping", zipname)
 	_, err = Unzip(zipname, addonsPath)
 	if err != nil {
 		return err
@@ -196,4 +162,47 @@ func install(settings *Settings, addons []ClientApiAddon) {
 		return
 	}
 	log.Println("done")
+}
+
+func checkForUpdate(addon LocalTukuiAddon, tukuiAddons []TukuiAddon, clientTukuiAddons []ClientApiAddon, addonsFolder string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	version := ""
+	downloadUrl := ""
+
+	if addon.Toc.XTukuiProjectID < 0 {
+		clienttukuiaddon := getClientAddonbyID(clientTukuiAddons, addon.Toc.XTukuiProjectID)
+		if clienttukuiaddon != nil {
+			version = clienttukuiaddon.Version
+			downloadUrl = clienttukuiaddon.URL
+		}
+	} else {
+		tukuiaddon := getAddonbyID(tukuiAddons, fmt.Sprintf("%d", addon.Toc.XTukuiProjectID))
+		if tukuiaddon != nil {
+			version = tukuiaddon.Version
+			downloadUrl = tukuiaddon.URL
+		}
+	}
+
+	if version == "" || downloadUrl == "" {
+		log.Printf("%s couldn't find the addon in the api", addon.Name)
+		return
+	}
+
+	addonVersion, err := strconv.ParseFloat(version, 64)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	if addonVersion > addon.Toc.Version {
+		log.Printf("updating %s", addon.Name)
+		err = addon.Update(downloadUrl, addonsFolder)
+		if err != nil {
+			log.Printf("error updating %s, error: %v", addon.Name, err)
+			return
+		}
+		updateToc(addon.Toc.path, addon.Toc.XTukuiProjectID)
+		log.Printf("finished updating %s from %.2f to %.2f", addon.Name, addon.Toc.Version, addonVersion)
+		return
+	}
+	log.Printf("%s is up-to-date!", addon.Name)
 }
