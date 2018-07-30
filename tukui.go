@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"runtime"
+	"sync"
 )
 
 var client = http.Client{}
@@ -111,21 +113,37 @@ func getLocalTukuiAddons(addonsPath string) []LocalTukuiAddon {
 		log.Println(err)
 		return localAddons
 	}
-	for _, addon := range addons {
-		addonPath := filepath.Join(addonsPath, addon)
-		tocfile := getTocFilepath(addonPath)
-		if tocfile == "" {
-			continue
-		}
-		toc := parseToc(tocfile)
-		if !toc.HasProjectID {
-			continue
-		}
-		localAddons = append(localAddons, LocalTukuiAddon{
-			Name: addon,
-			Path: addonPath,
-			Toc:  toc,
-		})
+	addonChan := make(chan string, len(addons))
+	wg := sync.WaitGroup{}
+	wg.Add(len(addons))
+
+	max := runtime.NumCPU()
+	for i := 0; i < max; i++ {
+		go func() {
+			for addon := range addonChan {
+				addonPath := filepath.Join(addonsPath, addon)
+				tocfile := getTocFilepath(addonPath)
+				if tocfile == "" {
+					wg.Done()
+					continue
+				}
+				toc := parseToc(tocfile)
+				if !toc.HasProjectID {
+					wg.Done()
+					continue
+				}
+				localAddons = append(localAddons, LocalTukuiAddon{
+					Name: addon,
+					Path: addonPath,
+					Toc:  toc,
+				})
+				wg.Done()
+			}
+		}()
 	}
+	for _, addon := range addons {
+		addonChan <- addon
+	}
+	wg.Wait()
 	return localAddons
 }
