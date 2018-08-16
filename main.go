@@ -24,7 +24,10 @@ func init() {
 }
 
 func main() {
-	settings := getSettings()
+	settings, err := getSettings()
+	if err != nil {
+		log.Fatalf("error reading settings.json, %v", err)
+	}
 	clientTukuiAddons := getExtraUIAddons("elvui", "tukui")
 
 	if installAddon != "" {
