@@ -4,13 +4,15 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"strconv"
 	"strings"
+
+	"github.com/hashicorp/go-version"
+	log "github.com/sirupsen/logrus"
 )
 
 type Toc struct {
-	Version              float64
+	Version              *version.Version
 	XTukuiProjectID      int
 	HasProjectID         bool
 	XTukuiProjectFolders string
@@ -22,7 +24,7 @@ func parseToc(path string) *Toc {
 	toc := Toc{}
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 		return &toc
 	}
 	toc.path = path
@@ -37,15 +39,14 @@ func parseToc(path string) *Toc {
 		tag := parts[1][:len(parts[1])-1]
 		switch tag {
 		case "Version":
-			version, err := strconv.ParseFloat(parts[2], 64)
+			toc.Version, err = version.NewVersion(parts[2])
 			if err != nil {
 				continue
 			}
-			toc.Version = version
 		case "X-Tukui-ProjectID":
 			id, err := strconv.Atoi(parts[2])
 			if err != nil {
-				log.Println(err)
+				log.Error(err)
 				continue
 			}
 			toc.XTukuiProjectID = id
@@ -58,7 +59,7 @@ func parseToc(path string) *Toc {
 	return &toc
 }
 
-func updateToc(path string, id int) error {
+func updateToc(path string, id int, version string) error {
 	newtoc := parseToc(path)
 	endstring := bytes.NewBuffer([]byte{})
 	hasId := false
@@ -82,6 +83,9 @@ func updateToc(path string, id int) error {
 	newtoc.lines[lastHash] = fmt.Sprintf("## X-Tukui-ProjectID: %d", id)
 
 	for _, line := range newtoc.lines {
+		if strings.HasPrefix(line, "## Version: ") && version != "" {
+			line = "## Version: " + strings.TrimSpace(version)
+		}
 		endstring.WriteString(fmt.Sprintf("%s\r\n", strings.TrimSpace(line)))
 	}
 

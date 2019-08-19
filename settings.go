@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 )
 
 type Settings struct {
@@ -21,13 +20,4 @@ func getSettings() (*Settings, error) {
 		return nil, err
 	}
 	return &settings, nil
-}
-
-func (s *Settings) Save() {
-	b, err := json.MarshalIndent(s, "", "\t")
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	ioutil.WriteFile("settings.json", b, 0755)
 }
