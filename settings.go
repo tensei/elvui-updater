@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 )
 
+// Settings ...
 type Settings struct {
 	WowDirectory string `json:"wow_directory"`
 }

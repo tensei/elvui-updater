@@ -11,13 +11,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Toc ...
 type Toc struct {
 	Version              *version.Version
 	XTukuiProjectID      int
 	HasProjectID         bool
 	XTukuiProjectFolders string
-	lines                []string
-	path                 string
+
+	lines []string
+	path  string
 }
 
 func parseToc(path string) *Toc {
@@ -41,12 +43,13 @@ func parseToc(path string) *Toc {
 		case "Version":
 			toc.Version, err = version.NewVersion(parts[2])
 			if err != nil {
+				log.Warnf("error parsing version, %w", err)
 				continue
 			}
 		case "X-Tukui-ProjectID":
 			id, err := strconv.Atoi(parts[2])
 			if err != nil {
-				log.Error(err)
+				log.Warnf("error parsing ProjectID to int, %w", err)
 				continue
 			}
 			toc.XTukuiProjectID = id
@@ -62,11 +65,11 @@ func parseToc(path string) *Toc {
 func updateToc(path string, id int, version string) error {
 	newtoc := parseToc(path)
 	endstring := bytes.NewBuffer([]byte{})
-	hasId := false
+	hasID := false
 	lastHash := 0
 	for i, line := range newtoc.lines {
 		if strings.Contains(line, "## X-Tukui-ProjectID: ") {
-			hasId = true
+			hasID = true
 			break
 		}
 		if !strings.Contains(line, "##") {
@@ -74,7 +77,7 @@ func updateToc(path string, id int, version string) error {
 			break
 		}
 	}
-	if hasId {
+	if hasID {
 		return nil
 	}
 

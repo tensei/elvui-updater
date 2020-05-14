@@ -12,18 +12,21 @@ import (
 
 var client = http.Client{}
 
+// TukuiAddon ...
 type TukuiAddon struct {
 	ID        string `json:"id"`
 	Downloads string `json:"downloads"`
 	DefaultAddonFields
 }
 
-type ClientApiAddon struct {
+// ClientAPIAddon ...
+type ClientAPIAddon struct {
 	ID        int `json:"id"`
 	Downloads int `json:"downloads"`
 	DefaultAddonFields
 }
 
+// DefaultAddonFields ...
 type DefaultAddonFields struct {
 	Name          string `json:"name"`
 	Author        string `json:"author"`
@@ -42,6 +45,7 @@ type DefaultAddonFields struct {
 	Category      string `json:"category"`
 }
 
+// LocalTukuiAddon ...
 type LocalTukuiAddon struct {
 	Name string
 	Path string
@@ -77,8 +81,8 @@ func newRequest(method, url string) *http.Request {
 	return req
 }
 
-func getExtraUIAddons(uis ...string) []ClientApiAddon {
-	addons := []ClientApiAddon{}
+func getExtraUIAddons(uis ...string) []ClientAPIAddon {
+	addons := []ClientAPIAddon{}
 	for _, ui := range uis {
 		api := "https://www.tukui.org/client-api.php?ui=" + ui
 		req := newRequest("GET", api)
@@ -95,7 +99,7 @@ func getExtraUIAddons(uis ...string) []ClientApiAddon {
 			log.Fatal(err)
 		}
 
-		var addon ClientApiAddon
+		var addon ClientAPIAddon
 		err = json.Unmarshal(body, &addon)
 		if err != nil {
 			log.Fatal(err)
